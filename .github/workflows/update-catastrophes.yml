@@ -1,0 +1,57 @@
+name: Mise à jour Catastrophes Naturelles Mondiales
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 */3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-catastrophes-mondiales
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v7
+
+      - name: Installer Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Produire disasters.json
+        run: python scripts/fetch_disasters.py
+
+      - name: Vérifier la publication
+        run: |
+          python - <<'PY'
+          import json
+          data = json.loads(open("disasters.json", encoding="utf-8").read())
+          assert data["count"] >= 0
+          assert "events" in data
+          print(f"Validation OK : {data['count']} événements")
+          PY
+
+      - name: Publier la branche data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+        run: |
+          publish_dir="$(mktemp -d)"
+          cp disasters.json "$publish_dir/"
+          touch "$publish_dir/.nojekyll"
+          cd "$publish_dir"
+          git init -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "Données catastrophes $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPOSITORY}.git"
+          git push --force origin data
