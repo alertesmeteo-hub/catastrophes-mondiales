@@ -17,12 +17,28 @@ EONET_CATEGORY_MAP = {
     "volcanoes": "volcan",
     "floods": "inondation",
     "drought": "secheresse",
-    "seaLakeIce": "glace",
+    "seaLakeIce": "meteo_extreme",
     "landslides": "glissement",
-    "snow": "neige",
-    "tempExtremes": "temperature",
-    "dustHaze": "poussiere",
+    "snow": "meteo_extreme",
+    "tempExtremes": "meteo_extreme",
+    "dustHaze": "meteo_extreme",
 }
+
+CYCLONE_KEYWORDS = ("hurricane", "cyclone", "typhoon", "tropical storm")
+HEAT_KEYWORDS = ("heat", "warm")
+COLD_KEYWORDS = ("cold", "winter storm", "freeze", "frost", "blizzard")
+
+
+def refine_category(base_category, title):
+    title_lower = (title or "").lower()
+    if base_category == "tempete" and any(k in title_lower for k in CYCLONE_KEYWORDS):
+        return "cyclone"
+    if base_category == "meteo_extreme":
+        if any(k in title_lower for k in HEAT_KEYWORDS):
+            return "chaleur"
+        if any(k in title_lower for k in COLD_KEYWORDS):
+            return "froid"
+    return base_category
 
 
 def fetch_json(url, timeout=20):
@@ -92,7 +108,7 @@ def build_eonet():
     for item in data.get("events", []):
         categories = item.get("categories", [])
         cat_id = categories[0].get("id") if categories else None
-        category = EONET_CATEGORY_MAP.get(cat_id, "autre")
+        category = refine_category(EONET_CATEGORY_MAP.get(cat_id, "autre"), item.get("title"))
         geometries = item.get("geometry", [])
         if not geometries:
             continue

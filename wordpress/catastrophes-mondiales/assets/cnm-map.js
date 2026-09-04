@@ -1,23 +1,40 @@
 (function () {
     "use strict";
 
+    // Ordre et libellés calqués sur le menu demandé (worldnaturaldisasters.com), en français.
+    var CATEGORY_ORDER = [
+        "seisme", "feu", "inondation", "tsunami", "tempete", "cyclone", "tornade",
+        "volcan", "glissement", "avalanche", "secheresse", "chaleur", "froid",
+        "pluie", "submersion", "meteo_extreme", "autre"
+    ];
     var CATEGORY_META = {
-        seisme: { label: "Séismes", color: "#c0392b" },
-        feu: { label: "Feux de forêt", color: "#e67e22" },
-        tempete: { label: "Tempêtes", color: "#2980b9" },
-        volcan: { label: "Volcans", color: "#8e44ad" },
-        inondation: { label: "Inondations", color: "#16a085" },
-        secheresse: { label: "Sécheresses", color: "#b7950b" },
-        glace: { label: "Glace", color: "#5dade2" },
-        glissement: { label: "Glissements de terrain", color: "#6e4b2a" },
-        neige: { label: "Neige", color: "#85929e" },
-        temperature: { label: "Températures extrêmes", color: "#d35400" },
-        poussiere: { label: "Poussière / brume", color: "#a1887f" },
-        autre: { label: "Autres", color: "#7f8c8d" }
+        seisme: { label: "Séisme", color: "#c0392b" },
+        feu: { label: "Feu de forêt", color: "#e67e22" },
+        inondation: { label: "Inondation", color: "#16a085" },
+        tsunami: { label: "Tsunami", color: "#1abc9c" },
+        tempete: { label: "Tempête sévère", color: "#2980b9" },
+        cyclone: { label: "Ouragan / Cyclone / Typhon", color: "#2471a3" },
+        tornade: { label: "Tornade", color: "#5b2c6f" },
+        volcan: { label: "Activité volcanique", color: "#8e44ad" },
+        glissement: { label: "Glissement de terrain", color: "#6e4b2a" },
+        avalanche: { label: "Avalanche", color: "#5dade2" },
+        secheresse: { label: "Sécheresse", color: "#b7950b" },
+        chaleur: { label: "Vague de chaleur", color: "#d35400" },
+        froid: { label: "Vague de froid", color: "#5499c7" },
+        pluie: { label: "Fortes pluies", color: "#1f618d" },
+        submersion: { label: "Onde de tempête", color: "#117864" },
+        meteo_extreme: { label: "Conditions météo extrêmes", color: "#85929e" },
+        autre: { label: "Autre risque", color: "#7f8c8d" }
     };
 
     function categoryMeta(cat) {
         return CATEGORY_META[cat] || CATEGORY_META.autre;
+    }
+
+    function clusterSizeClass(count) {
+        if (count >= 25) return "cnm-cluster-large";
+        if (count >= 10) return "cnm-cluster-medium";
+        return "cnm-cluster-small";
     }
 
     function markerRadius(event) {
@@ -58,7 +75,18 @@
             maxZoom: 12
         }).addTo(map);
 
-        var layerGroup = L.layerGroup().addTo(map);
+        var layerGroup = L.markerClusterGroup({
+            maxClusterRadius: 55,
+            iconCreateFunction: function (cluster) {
+                var count = cluster.getChildCount();
+                var size = count >= 25 ? 44 : count >= 10 ? 38 : 32;
+                return L.divIcon({
+                    html: '<div class="cnm-cluster-icon ' + clusterSizeClass(count) + '" style="width:' + size + 'px;height:' + size + 'px">' + count + '</div>',
+                    className: "cnm-cluster-wrapper",
+                    iconSize: L.point(size, size)
+                });
+            }
+        }).addTo(map);
         var activeFilters = null;
         var allEvents = [];
 
@@ -135,28 +163,49 @@
             return div.innerHTML;
         }
 
-        function buildToolbar(categoriesPresent) {
+        function buildToolbar(allCategories, counts) {
             if (!toolbarEl) return;
             toolbarEl.innerHTML = "";
-            categoriesPresent.forEach(function (cat) {
+            var buttons = {};
+
+            function setAllActive(active) {
+                activeFilters = active ? null : [];
+                Object.keys(buttons).forEach(function (cat) {
+                    buttons[cat].classList.toggle("is-active", active);
+                });
+                allBtn.classList.toggle("is-active", active);
+            }
+
+            var allBtn = document.createElement("button");
+            allBtn.type = "button";
+            allBtn.className = "is-active cnm-toolbar-all";
+            allBtn.textContent = "Tous les risques";
+            allBtn.addEventListener("click", function () { setAllActive(true); renderMarkers(); });
+            toolbarEl.appendChild(allBtn);
+
+            allCategories.forEach(function (cat) {
                 var meta = categoryMeta(cat);
+                var count = counts[cat] || 0;
                 var btn = document.createElement("button");
                 btn.type = "button";
-                btn.className = "is-active";
+                btn.className = "is-active" + (count === 0 ? " is-empty" : "");
                 btn.dataset.category = cat;
-                btn.innerHTML = '<span class="cnm-dot" style="background:' + meta.color + '"></span>' + meta.label;
+                btn.innerHTML = '<span class="cnm-dot" style="background:' + meta.color + '"></span>' +
+                    meta.label + ' <span class="cnm-count">(' + count + ')</span>';
                 btn.addEventListener("click", function () {
-                    var isActive = btn.classList.toggle("is-active");
-                    if (!activeFilters) {
-                        activeFilters = categoriesPresent.slice();
+                    if (activeFilters === null) {
+                        activeFilters = allCategories.slice();
                     }
+                    var isActive = btn.classList.toggle("is-active");
                     if (isActive) {
                         if (activeFilters.indexOf(cat) === -1) activeFilters.push(cat);
                     } else {
                         activeFilters = activeFilters.filter(function (c) { return c !== cat; });
                     }
+                    allBtn.classList.toggle("is-active", activeFilters.length === allCategories.length);
                     renderMarkers();
                 });
+                buttons[cat] = btn;
                 toolbarEl.appendChild(btn);
             });
         }
@@ -175,13 +224,14 @@
                         return presetCategories.indexOf(e.category) !== -1;
                     });
                 }
-                var categoriesPresent = [];
+                var counts = {};
                 allEvents.forEach(function (e) {
-                    if (categoriesPresent.indexOf(e.category) === -1) {
-                        categoriesPresent.push(e.category);
-                    }
+                    counts[e.category] = (counts[e.category] || 0) + 1;
                 });
-                buildToolbar(categoriesPresent);
+                var categoryList = presetCategories.length
+                    ? CATEGORY_ORDER.filter(function (c) { return presetCategories.indexOf(c) !== -1; })
+                    : CATEGORY_ORDER;
+                buildToolbar(categoryList, counts);
                 renderMarkers();
 
                 if (updatedEl) {

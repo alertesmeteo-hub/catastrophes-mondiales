@@ -3,7 +3,7 @@
  * Plugin Name: Catastrophes Naturelles Mondiales
  * Plugin URI: https://github.com/alertesmeteo-hub/catastrophes-mondiales
  * Description: Carte interactive mondiale des catastrophes naturelles récentes (séismes USGS, feux, tempêtes, volcans, inondations NASA EONET).
- * Version: 1.0.2
+ * Version: 1.1.0
  * Author: Alertes Météo Hub
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CNM_VERSION', '1.0.2');
+define('CNM_VERSION', '1.1.0');
 define('CNM_RELEASE_DATE', '04/09/2026');
 define('CNM_OPTION_DATA_URL', 'cnm_data_url');
 define(
@@ -61,15 +61,34 @@ function cnm_register_assets() {
         true
     );
     wp_register_style(
+        'cnm-markercluster',
+        'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
+        array('cnm-leaflet'),
+        '1.5.3'
+    );
+    wp_register_style(
+        'cnm-markercluster-default',
+        'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
+        array('cnm-markercluster'),
+        '1.5.3'
+    );
+    wp_register_script(
+        'cnm-markercluster',
+        'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
+        array('cnm-leaflet'),
+        '1.5.3',
+        true
+    );
+    wp_register_style(
         'cnm-map',
         plugin_dir_url(__FILE__) . 'assets/cnm-map.css',
-        array('cnm-leaflet'),
+        array('cnm-leaflet', 'cnm-markercluster-default'),
         CNM_VERSION
     );
     wp_register_script(
         'cnm-map',
         plugin_dir_url(__FILE__) . 'assets/cnm-map.js',
-        array('cnm-leaflet'),
+        array('cnm-leaflet', 'cnm-markercluster'),
         CNM_VERSION,
         true
     );
@@ -157,7 +176,7 @@ function cnm_data_url() {
 function cnm_render_shortcode($atts) {
     $atts = shortcode_atts(
         array(
-            'hauteur' => '650',
+            'hauteur' => '850',
             'titre' => 'Catastrophes naturelles dans le monde',
             'categorie' => '',
         ),
@@ -165,7 +184,7 @@ function cnm_render_shortcode($atts) {
         'catastrophes_mondiales'
     );
 
-    $height = max(400, min(1200, absint($atts['hauteur'])));
+    $height = max(400, min(1600, absint($atts['hauteur'])));
     $title = trim(sanitize_text_field($atts['titre']));
     if ($title === '') {
         $title = 'Catastrophes naturelles dans le monde';
@@ -176,8 +195,11 @@ function cnm_render_shortcode($atts) {
         : 'cnm-map-' . wp_rand(1000, 999999);
 
     wp_enqueue_style('cnm-leaflet');
+    wp_enqueue_style('cnm-markercluster');
+    wp_enqueue_style('cnm-markercluster-default');
     wp_enqueue_style('cnm-map');
     wp_enqueue_script('cnm-leaflet');
+    wp_enqueue_script('cnm-markercluster');
     wp_enqueue_script('cnm-map');
 
     ob_start();
