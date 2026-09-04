@@ -3,7 +3,7 @@ Contributors: alertesmeteo
 Tags: catastrophes, seismes, meteo, eonet, usgs, avada
 Requires at least: 5.8
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 

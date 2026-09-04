@@ -75,6 +75,17 @@
             maxZoom: 12
         }).addTo(map);
 
+        function resyncMapSize() {
+            map.invalidateSize();
+            map.setView([20, 10], map.getZoom());
+        }
+        // Le conteneur peut ne pas avoir sa largeur finale au moment de l'init
+        // (mise en page du thème, polices, colonnes flex) : on recale la carte
+        // une fois le rendu stabilisé, puis à chaque redimensionnement.
+        setTimeout(resyncMapSize, 150);
+        setTimeout(resyncMapSize, 800);
+        window.addEventListener("resize", resyncMapSize);
+
         var layerGroup = L.markerClusterGroup({
             maxClusterRadius: 55,
             iconCreateFunction: function (cluster) {
