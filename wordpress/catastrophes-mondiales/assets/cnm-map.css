@@ -41,6 +41,39 @@
 }
 .cnm-badge strong { font-size: .95rem; }
 
+.cnm-detail {
+    padding: 1em 1.25em;
+    background: #fff;
+    border-bottom: 1px solid #e2e6ec;
+}
+.cnm-detail[hidden] { display: none; }
+.cnm-detail-back {
+    border: 1px solid #d3dae4;
+    background: #f4f6f9;
+    border-radius: 6px;
+    padding: .35em .8em;
+    font-size: .8rem;
+    cursor: pointer;
+    color: #33465f;
+    margin-bottom: .8em;
+}
+.cnm-detail-title { display: flex; align-items: center; gap: .6em; margin: 0 0 .4em; font-size: 1.15rem; }
+.cnm-detail-dot { width: .8em; height: .8em; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.cnm-detail-meta { display: flex; flex-wrap: wrap; gap: .4em 1.2em; font-size: .85rem; color: #5a6779; margin: 0 0 .6em; }
+.cnm-detail-meta strong { color: #1b2430; }
+.cnm-detail-link {
+    display: inline-block;
+    margin-top: .3em;
+    padding: .4em .9em;
+    background: #1b2430;
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: .82rem;
+}
+.cnm-detail-link:hover { background: #33465f; }
+.cnm-detail-missing { color: #a4222c; font-size: .9rem; }
+
 .cnm-toolbar {
     display: flex;
     flex-wrap: wrap;

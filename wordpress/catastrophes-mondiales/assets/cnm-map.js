@@ -63,6 +63,9 @@
         var toolbarEl = root.querySelector("[data-cnm-toolbar]");
         var viewportEl = root.querySelector(".cnm-viewport");
         var fullscreenBtn = root.querySelector("[data-cnm-fullscreen]");
+        var detailEl = root.querySelector("[data-cnm-detail]");
+        var detailBodyEl = root.querySelector("[data-cnm-detail-body]");
+        var detailBackBtn = root.querySelector("[data-cnm-detail-back]");
         var dataUrl = root.getAttribute("data-data-url");
         var presetCategories = (root.getAttribute("data-categories") || "")
             .split(",")
@@ -136,6 +139,60 @@
             }
         }
 
+        function eventUrl(event) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("evenement", event.id);
+            url.hash = "";
+            return url.pathname + "?" + url.searchParams.toString();
+        }
+
+        function showDetail(event) {
+            var meta = categoryMeta(event.category);
+            var lines = [
+                '<h3 class="cnm-detail-title"><span class="cnm-detail-dot" style="background:' + meta.color + '"></span>' + escapeHtml(event.title) + '</h3>',
+                '<p class="cnm-detail-meta">' +
+                    '<span><strong>Type :</strong> ' + meta.label + '</span>' +
+                    (event.magnitude ? '<span><strong>Magnitude :</strong> ' + event.magnitude.toFixed(1) + '</span>' : '') +
+                    '<span><strong>Date :</strong> ' + formatDate(event.date) + '</span>' +
+                    '<span><strong>Coordonnées :</strong> ' + event.lat.toFixed(2) + ', ' + event.lon.toFixed(2) + '</span>' +
+                    '<span><strong>Source :</strong> ' + escapeHtml(event.source || "—") + '</span>' +
+                '</p>'
+            ];
+            if (event.url) {
+                lines.push('<a class="cnm-detail-link" href="' + event.url + '" target="_blank" rel="noopener noreferrer">Voir la source officielle →</a>');
+            }
+            detailBodyEl.innerHTML = lines.join("");
+            detailEl.hidden = false;
+            document.title = event.title + " — Catastrophes naturelles dans le monde";
+            setTimeout(function () {
+                map.invalidateSize();
+                map.setView([event.lat, event.lon], Math.max(map.getZoom(), 6));
+            }, 50);
+        }
+
+        function hideDetail() {
+            detailEl.hidden = true;
+            var url = new URL(window.location.href);
+            url.searchParams.delete("evenement");
+            window.history.pushState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+            setTimeout(function () { map.invalidateSize(); }, 50);
+        }
+
+        if (detailBackBtn) {
+            detailBackBtn.addEventListener("click", hideDetail);
+        }
+
+        window.addEventListener("popstate", function () {
+            var wanted = new URL(window.location.href).searchParams.get("evenement");
+            if (!wanted) {
+                detailEl.hidden = true;
+                setTimeout(function () { map.invalidateSize(); }, 50);
+                return;
+            }
+            var found = allEvents.filter(function (e) { return e.id === wanted; })[0];
+            if (found) showDetail(found);
+        });
+
         function renderMarkers() {
             layerGroup.clearLayers();
             var shown = 0;
@@ -156,8 +213,9 @@
                     meta.label + (event.magnitude ? " • M " + event.magnitude.toFixed(1) : ""),
                     formatDate(event.date)
                 ];
+                lines.push('<a href="' + eventUrl(event) + '" data-cnm-event-link="' + escapeHtml(event.id) + '">Voir la fiche complète →</a>');
                 if (event.url) {
-                    lines.push('<a href="' + event.url + '" target="_blank" rel="noopener noreferrer">Détails →</a>');
+                    lines.push('<a href="' + event.url + '" target="_blank" rel="noopener noreferrer">Source officielle ↗</a>');
                 }
                 marker.bindPopup('<div class="cnm-popup">' + lines.join("<br>") + "</div>");
                 marker.addTo(layerGroup);
@@ -244,6 +302,29 @@
                     : CATEGORY_ORDER;
                 buildToolbar(categoryList, counts);
                 renderMarkers();
+
+                root.addEventListener("click", function (evt) {
+                    var link = evt.target.closest("[data-cnm-event-link]");
+                    if (!link) return;
+                    evt.preventDefault();
+                    var wanted = link.getAttribute("data-cnm-event-link");
+                    var found = allEvents.filter(function (e) { return e.id === wanted; })[0];
+                    if (found) {
+                        window.history.pushState({}, "", eventUrl(found));
+                        showDetail(found);
+                    }
+                });
+
+                var requested = new URL(window.location.href).searchParams.get("evenement");
+                if (requested) {
+                    var initial = allEvents.filter(function (e) { return e.id === requested; })[0];
+                    if (initial) {
+                        showDetail(initial);
+                    } else if (detailBodyEl) {
+                        detailBodyEl.innerHTML = '<p class="cnm-detail-missing">Cet événement n’est plus disponible (données de plus de 20 jours ou déjà archivées).</p>';
+                        detailEl.hidden = false;
+                    }
+                }
 
                 if (updatedEl) {
                     updatedEl.textContent = data.generated_at
