@@ -78,6 +78,12 @@
             maxZoom: 12
         }).addTo(map);
 
+        // Le thème (menu collant en position:fixed, z-index élevé) peut recouvrir
+        // les popups Leaflet quand elles s'ouvrent près du haut de l'écran, ce qui
+        // rend leurs liens visibles mais non cliquables. On force le calque des
+        // popups bien au-dessus de tout ce que le thème peut afficher.
+        map.getPane("popupPane").style.zIndex = 10050;
+
         function resyncMapSize() {
             map.invalidateSize();
             map.setView([20, 10], map.getZoom());
@@ -217,7 +223,9 @@
                 if (event.url) {
                     lines.push('<a href="' + event.url + '" target="_blank" rel="noopener noreferrer">Source officielle ↗</a>');
                 }
-                marker.bindPopup('<div class="cnm-popup">' + lines.join("<br>") + "</div>");
+                marker.bindPopup('<div class="cnm-popup">' + lines.join("<br>") + "</div>", {
+                    autoPanPaddingTopLeft: L.point(10, 90)
+                });
                 // Leaflet coupe volontairement la propagation des clics au niveau du
                 // conteneur de la popup (pour ne pas déclencher un clic sur la carte),
                 // donc un écouteur délégué plus haut ne reçoit jamais l'événement :
