@@ -218,6 +218,24 @@
                     lines.push('<a href="' + event.url + '" target="_blank" rel="noopener noreferrer">Source officielle ↗</a>');
                 }
                 marker.bindPopup('<div class="cnm-popup">' + lines.join("<br>") + "</div>");
+                // Leaflet coupe volontairement la propagation des clics au niveau du
+                // conteneur de la popup (pour ne pas déclencher un clic sur la carte),
+                // donc un écouteur délégué plus haut ne reçoit jamais l'événement :
+                // on attache le clic directement sur le lien à l'ouverture de la popup.
+                marker.on("popupopen", function (e) {
+                    var link = e.popup.getElement().querySelector("[data-cnm-event-link]");
+                    if (!link) return;
+                    link.addEventListener("click", function (evt) {
+                        evt.preventDefault();
+                        var wanted = link.getAttribute("data-cnm-event-link");
+                        var found = allEvents.filter(function (ev) { return ev.id === wanted; })[0];
+                        if (found) {
+                            window.history.pushState({}, "", eventUrl(found));
+                            map.closePopup();
+                            showDetail(found);
+                        }
+                    });
+                });
                 marker.addTo(layerGroup);
                 shown++;
             });
@@ -302,18 +320,6 @@
                     : CATEGORY_ORDER;
                 buildToolbar(categoryList, counts);
                 renderMarkers();
-
-                root.addEventListener("click", function (evt) {
-                    var link = evt.target.closest("[data-cnm-event-link]");
-                    if (!link) return;
-                    evt.preventDefault();
-                    var wanted = link.getAttribute("data-cnm-event-link");
-                    var found = allEvents.filter(function (e) { return e.id === wanted; })[0];
-                    if (found) {
-                        window.history.pushState({}, "", eventUrl(found));
-                        showDetail(found);
-                    }
-                });
 
                 var requested = new URL(window.location.href).searchParams.get("evenement");
                 if (requested) {
