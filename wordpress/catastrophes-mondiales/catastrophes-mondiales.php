@@ -3,7 +3,7 @@
  * Plugin Name: Catastrophes Naturelles Mondiales
  * Plugin URI: https://github.com/alertesmeteo-hub/catastrophes-mondiales
  * Description: Carte interactive mondiale des catastrophes naturelles récentes (séismes USGS, feux, tempêtes, volcans, inondations NASA EONET).
- * Version: 1.2.2
+ * Version: 1.2.3
  * Author: Alertes Météo Hub
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CNM_VERSION', '1.2.2');
+define('CNM_VERSION', '1.2.3');
 define('CNM_RELEASE_DATE', '04/09/2026');
 define('CNM_OPTION_DATA_URL', 'cnm_data_url');
 define(

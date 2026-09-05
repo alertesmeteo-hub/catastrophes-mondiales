@@ -120,8 +120,18 @@
     font-size: .72em;
 }
 
+/*
+ * Leaflet applique une transformation CSS (transform) sur son conteneur
+ * interne de panneaux (.leaflet-map-pane), ce qui crée un nouveau contexte
+ * d'empilement : un z-index posé sur .leaflet-popup-pane (à l'intérieur)
+ * ne peut donc jamais rivaliser avec des éléments EXTÉRIEURS à la carte,
+ * comme un menu du thème en position:fixed avec un z-index élevé. Il faut
+ * élever le CONTENEUR EXTÉRIEUR (.cnm-viewport) pour que la carte entière
+ * (popups comprises) passe au-dessus d'un menu collant du thème.
+ */
 .cnm-viewport {
     position: relative;
+    z-index: 10060;
     height: var(--cnm-height);
     background: #cfe0f0;
 }
